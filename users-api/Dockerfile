@@ -2,7 +2,7 @@
 # Stage 1: build
 # ======================
 
-FROM gcr.io/cloud-builders/maven:3.8.6-openjdk-8 AS build
+FROM gcr.io/cloud-builders/maven:3.8.6-jdk-8 AS build
 
 WORKDIR /app
 
