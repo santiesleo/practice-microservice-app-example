@@ -39,17 +39,11 @@ jobs:
       - name: Terraform Plan - Staging
         run: |
           cd infrastructure/environments/staging
-          terraform plan -out=tfplan-staging
+          terraform plan
         env:
           TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
           TF_VAR_region: us-central1
           TF_VAR_environment: staging
-          
-      - name: Upload Terraform Plan
-        uses: actions/upload-artifact@v4
-        with:
-          name: tfplan-staging
-          path: infrastructure/environments/staging/tfplan-staging
 
   # ===========================================
   # JOB 2: TERRAFORM APPLY (STAGING)
@@ -78,16 +72,11 @@ jobs:
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
           
-      - name: Download Terraform Plan
-        uses: actions/download-artifact@v4
-        with:
-          name: tfplan-staging
-          path: infrastructure/environments/staging
-          
-      - name: Terraform Apply - Staging
+      - name: Apply Terraform Changes
         run: |
           cd infrastructure/environments/staging
-          terraform apply -auto-approve tfplan-staging
+          terraform init
+          terraform apply -auto-approve
         env:
           TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
           TF_VAR_region: us-central1
