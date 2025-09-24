@@ -1,4 +1,4 @@
-FROM gcr.io/cloud-builders/node:8.17.0-alpine
+FROM node:8.17.0-alpine
 
 WORKDIR /app
 
