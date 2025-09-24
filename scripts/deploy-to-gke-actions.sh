@@ -87,22 +87,22 @@ log "Construyendo y subiendo imágenes Docker..."
 
 # Auth API
 log "Construyendo auth-api..."
-docker build -t gcr.io/$GCP_PROJECT_ID/auth-api:latest ./auth-api
+docker build --platform linux/amd64 -t gcr.io/$GCP_PROJECT_ID/auth-api:latest ./auth-api
 docker push gcr.io/$GCP_PROJECT_ID/auth-api:latest
 
 # Users API
 log "Construyendo users-api..."
-docker build -t gcr.io/$GCP_PROJECT_ID/users-api:latest ./users-api
+docker build --platform linux/amd64 -t gcr.io/$GCP_PROJECT_ID/users-api:latest ./users-api
 docker push gcr.io/$GCP_PROJECT_ID/users-api:latest
 
 # Todos API
 log "Construyendo todos-api..."
-docker build -t gcr.io/$GCP_PROJECT_ID/todos-api:latest ./todos-api
+docker build --platform linux/amd64 -t gcr.io/$GCP_PROJECT_ID/todos-api:latest ./todos-api
 docker push gcr.io/$GCP_PROJECT_ID/todos-api:latest
 
 # Frontend
 log "Construyendo frontend..."
-docker build -t gcr.io/$GCP_PROJECT_ID/frontend:latest ./frontend
+docker build --platform linux/amd64 -t gcr.io/$GCP_PROJECT_ID/frontend:latest ./frontend
 docker push gcr.io/$GCP_PROJECT_ID/frontend:latest
 
 # 7. Desplegar en Kubernetes
