@@ -2,9 +2,9 @@
 # Stage 1: build
 # ======================
 
-FROM gcr.io/google-appengine/golang:1.18 AS builder
+FROM golang:1.18-alpine3.15 AS builder
 
-# RUN apt-get update && apt-get install -y git
+# RUN apk add --no-cache git
 
 WORKDIR /app
 
@@ -20,7 +20,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o auth-api .
 # Stage 2: runtime
 # ======================
 
-FROM gcr.io/distroless/base-debian11
+FROM alpine:3.15
 
 # RUN apk --no-cache add ca-certificates
 
@@ -31,4 +31,4 @@ EXPOSE 8000
 ENV AUTH_API_PORT=8000
 ENV USERS_API_ADDRESS=http://127.0.0.1:8083
 
-ENTRYPOINT ["/auth-api"]
+CMD ["/auth-api"]
