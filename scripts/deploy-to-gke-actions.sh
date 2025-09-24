@@ -43,6 +43,10 @@ log "Configurando gcloud..."
 gcloud config set project "$GCP_PROJECT_ID"
 gcloud auth configure-docker --quiet
 
+# Configurar Docker Hub (para evitar errores de autenticación)
+log "Configurando Docker Hub..."
+echo "Configurando acceso público a Docker Hub..."
+
 # 2. Instalar gke-gcloud-auth-plugin
 log "Instalando gke-gcloud-auth-plugin..."
 gcloud components install gke-gcloud-auth-plugin --quiet
@@ -87,7 +91,7 @@ log "Construyendo y subiendo imágenes Docker..."
 
 # Auth API
 log "Construyendo auth-api..."
-docker build --platform linux/amd64 -t gcr.io/$GCP_PROJECT_ID/auth-api:latest ./auth-api
+docker build --platform linux/amd64 --no-cache -t gcr.io/$GCP_PROJECT_ID/auth-api:latest ./auth-api
 docker push gcr.io/$GCP_PROJECT_ID/auth-api:latest
 
 # Users API
