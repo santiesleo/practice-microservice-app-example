@@ -43,23 +43,30 @@ log "Configurando gcloud..."
 gcloud config set project "$GCP_PROJECT_ID"
 gcloud auth configure-docker --quiet
 
-# 2. Conectar al cluster GKE
+# 2. Instalar gke-gcloud-auth-plugin
+log "Instalando gke-gcloud-auth-plugin..."
+gcloud components install gke-gcloud-auth-plugin --quiet
+
+# 3. Conectar al cluster GKE
 log "Conectando al cluster GKE..."
 gcloud container clusters get-credentials microservices-cluster-staging-v3 --zone="$GCP_ZONE"
 
-# 3. Obtener IP de Redis desde Terraform
+# 4. Obtener IP de Redis desde Terraform
 log "Obteniendo IP de Redis desde Terraform..."
 cd infrastructure/environments/staging
 REDIS_HOST=$(terraform output -raw redis_host 2>/dev/null || echo "")
 cd ../../..
 
 if [ -z "$REDIS_HOST" ]; then
-    error "No se pudo obtener la IP de Redis desde Terraform"
+    warn "No se pudo obtener la IP de Redis desde Terraform, usando IP por defecto"
+    REDIS_HOST="10.219.117.51"  # IP conocida del Memorystore
 fi
+
+log "Redis Host: $REDIS_HOST"
 
 log "IP de Redis obtenida: $REDIS_HOST"
 
-# 4. Actualizar ConfigMap con IP de Redis (compatible con GitHub Actions)
+# 5. Actualizar ConfigMap con IP de Redis (compatible con GitHub Actions)
 log "Actualizando ConfigMap con IP de Redis..."
 CONFIGMAP_FILE="k8s/staging/configmap.yaml"
 
@@ -75,7 +82,7 @@ else
     sed -i "s/REDIS_HOST: \".*\"/REDIS_HOST: \"$REDIS_HOST\"/" "$CONFIGMAP_FILE"
 fi
 
-# 5. Construir y subir imágenes Docker (usando docker build en lugar de buildx)
+# 6. Construir y subir imágenes Docker (usando docker build en lugar de buildx)
 log "Construyendo y subiendo imágenes Docker..."
 
 # Auth API
@@ -98,7 +105,7 @@ log "Construyendo frontend..."
 docker build -t gcr.io/$GCP_PROJECT_ID/frontend:latest ./frontend
 docker push gcr.io/$GCP_PROJECT_ID/frontend:latest
 
-# 6. Desplegar en Kubernetes
+# 7. Desplegar en Kubernetes
 log "Desplegando en Kubernetes..."
 
 # Namespace
