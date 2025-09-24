@@ -1,6 +1,6 @@
 # Multi-stage build for Vue.js frontend
 # Stage 1: Build the application
-FROM node:8.17.0-alpine as build-stage
+FROM gcr.io/cloud-builders/node:8.17.0-alpine as build-stage
 
 WORKDIR /app
 
@@ -17,7 +17,7 @@ COPY . .
 RUN npm run build
 
 # Stage 2: Serve with Nginx
-FROM nginx:alpine as production-stage
+FROM gcr.io/cloud-builders/nginx:alpine as production-stage
 
 # Install envsubst for environment variable substitution
 RUN apk add --no-cache gettext

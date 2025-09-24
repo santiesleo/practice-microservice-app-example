@@ -2,7 +2,7 @@
 # Stage 1: build
 # ======================
 
-FROM maven:3.8.6-openjdk-8-slim AS build
+FROM gcr.io/cloud-builders/maven:3.8.6-openjdk-8 AS build
 
 WORKDIR /app
 
@@ -16,7 +16,7 @@ RUN mvn clean package -DskipTests
 # Stage 2: runtime
 # ======================
 
-FROM maven:3.8.6-openjdk-8-slim
+FROM gcr.io/distroless/java:8
 
 WORKDIR /app
 
