@@ -88,12 +88,12 @@ else
     sed -i "s/REDIS_HOST: \".*\"/REDIS_HOST: \"$REDIS_HOST\"/" "$CONFIGMAP_FILE"
 fi
 
-# 6. Construir y subir imágenes Docker (usando docker build en lugar de buildx)
+# 6. Construir y subir imágenes Docker (usando imágenes de GCR)
 log "Construyendo y subiendo imágenes Docker..."
 
 # Auth API
 log "Construyendo auth-api..."
-docker build --platform linux/amd64 --no-cache -t gcr.io/$GCP_PROJECT_ID/auth-api:latest ./auth-api
+docker build --platform linux/amd64 -t gcr.io/$GCP_PROJECT_ID/auth-api:latest ./auth-api
 docker push gcr.io/$GCP_PROJECT_ID/auth-api:latest
 
 # Users API
