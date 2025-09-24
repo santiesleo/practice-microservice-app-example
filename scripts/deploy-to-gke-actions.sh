@@ -43,11 +43,15 @@ log "Configurando gcloud..."
 gcloud config set project "$GCP_PROJECT_ID"
 gcloud auth configure-docker --quiet
 
-# Configurar Docker Hub (para evitar errores de autenticación)
-log "Configurando Docker Hub..."
-echo "Configurando acceso público a Docker Hub..."
-# Login anónimo a Docker Hub para evitar rate limiting
-echo "" | docker login --username "$(openssl rand -base64 32)" --password-stdin 2>/dev/null || true
+    # Configurar Docker Hub (para evitar errores de autenticación)
+    log "Configurando Docker Hub..."
+    echo "Configurando acceso público a Docker Hub..."
+    # Login anónimo a Docker Hub para evitar rate limiting
+    echo "" | docker login --username "$(openssl rand -base64 32)" --password-stdin 2>/dev/null || true
+    
+    # Configurar Docker para usar registry-1.docker.io explícitamente
+    export DOCKER_BUILDKIT=0
+    export BUILDKIT_PROGRESS=plain
 
 # 2. Instalar gke-gcloud-auth-plugin
 log "Instalando gke-gcloud-auth-plugin..."
