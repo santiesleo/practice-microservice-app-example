@@ -28,10 +28,6 @@ error() {
 }
 
 # Verificar variables de entorno requeridas
-if [ -z "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
-    error "GOOGLE_APPLICATION_CREDENTIALS no está configurado"
-fi
-
 if [ -z "$GCP_PROJECT_ID" ]; then
     error "GCP_PROJECT_ID no está configurado"
 fi
@@ -42,9 +38,8 @@ fi
 
 log "Iniciando despliegue automatizado..."
 
-# 1. Configurar gcloud
+# 1. Configurar gcloud (ya autenticado por GitHub Actions)
 log "Configurando gcloud..."
-gcloud auth activate-service-account --key-file="$GOOGLE_APPLICATION_CREDENTIALS"
 gcloud config set project "$GCP_PROJECT_ID"
 gcloud auth configure-docker --quiet
 
