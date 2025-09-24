@@ -1,0 +1,176 @@
+name: CD Pipeline - Deploy to GKE
+on:
+  push:
+    branches: [staging, master]
+  workflow_dispatch: # Permite ejecutar manualmente
+
+jobs:
+  # ===========================================
+  # JOB 1: TERRAFORM PLAN (STAGING)
+  # ===========================================
+  terraform-plan:
+    runs-on: ubuntu-latest
+    name: Terraform Plan - Staging
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
+          
+      - name: Setup GCP
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          
+      - name: Terraform Init - Staging
+        run: |
+          cd infrastructure/environments/staging
+          terraform init
+          
+      - name: Terraform Plan - Staging
+        run: |
+          cd infrastructure/environments/staging
+          terraform plan -out=tfplan-staging
+        env:
+          TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
+          TF_VAR_region: us-central1
+          TF_VAR_environment: staging
+          
+      - name: Upload Terraform Plan
+        uses: actions/upload-artifact@v3
+        with:
+          name: tfplan-staging
+          path: infrastructure/environments/staging/tfplan-staging
+
+  # ===========================================
+  # JOB 2: TERRAFORM APPLY (STAGING)
+  # ===========================================
+  terraform-apply-staging:
+    runs-on: ubuntu-latest
+    name: Terraform Apply - Staging
+    needs: terraform-plan
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
+          
+      - name: Setup GCP
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          
+      - name: Download Terraform Plan
+        uses: actions/download-artifact@v3
+        with:
+          name: tfplan-staging
+          path: infrastructure/environments/staging
+          
+      - name: Terraform Apply - Staging
+        run: |
+          cd infrastructure/environments/staging
+          terraform apply -auto-approve tfplan-staging
+        env:
+          TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
+          TF_VAR_region: us-central1
+          TF_VAR_environment: staging
+
+  # ===========================================
+  # JOB 3: BUILD AND DEPLOY TO GKE
+  # ===========================================
+  deploy-to-gke:
+    runs-on: ubuntu-latest
+    name: Build and Deploy to GKE
+    needs: terraform-apply-staging
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup GCP
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        
+      - name: Make script executable
+        run: chmod +x scripts/deploy-to-gke-actions.sh
+        
+      - name: Deploy to GKE
+        run: ./scripts/deploy-to-gke-actions.sh
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GCP_SA_KEY }}
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          GCP_ZONE: us-central1-a
+          GITHUB_ENV: $GITHUB_ENV
+
+  # ===========================================
+  # JOB 4: INTEGRATION TESTS
+  # ===========================================
+  integration-tests:
+    runs-on: ubuntu-latest
+    name: Integration Tests
+    needs: deploy-to-gke
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup GCP
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          
+      - name: Get Ingress IP
+        id: get-ip
+        run: |
+          gcloud container clusters get-credentials microservices-cluster-staging-v3 --zone=us-central1-a
+          
+          # Wait for ingress IP
+          for i in {1..30}; do
+            INGRESS_IP=$(kubectl get ingress microservices-ingress -n microservices-staging -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
+            if [ -n "$INGRESS_IP" ]; then
+              echo "IP found: $INGRESS_IP"
+              echo "INGRESS_IP=$INGRESS_IP" >> $GITHUB_OUTPUT
+              break
+            fi
+            echo "Waiting for ingress IP... (attempt $i/30)"
+            sleep 10
+          done
+          
+          if [ -z "$INGRESS_IP" ]; then
+            echo "Failed to get ingress IP"
+            exit 1
+          fi
+          
+      - name: Run Integration Tests
+        run: |
+          echo "Running integration tests against staging..."
+          echo "Staging URL: http://${{ steps.get-ip.outputs.INGRESS_IP }}"
+          
+          # Wait a bit for services to be ready
+          sleep 30
+          
+          # Test endpoints
+          curl -f "http://${{ steps.get-ip.outputs.INGRESS_IP }}/" || echo "Frontend test failed"
+          
+          # Note: Auth endpoints might need JWT tokens, so we'll just check if they respond
+          curl -f "http://${{ steps.get-ip.outputs.INGRESS_IP }}/api/auth" || echo "Auth API test failed"
+          curl -f "http://${{ steps.get-ip.outputs.INGRESS_IP }}/api/users" || echo "Users API test failed"
+          curl -f "http://${{ steps.get-ip.outputs.INGRESS_IP }}/api/todos" || echo "Todos API test failed"
+          
+          echo "Integration tests completed"

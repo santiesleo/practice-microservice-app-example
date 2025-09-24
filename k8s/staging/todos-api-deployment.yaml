@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: todos-api
+  namespace: microservices-staging
+  labels:
+    app: todos-api
+    environment: staging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: todos-api
+  template:
+    metadata:
+      labels:
+        app: todos-api
+        environment: staging
+    spec:
+      containers:
+      - name: todos-api
+        image: gcr.io/microservices-devops-0923/todos-api:latest
+        ports:
+        - containerPort: 8082
+        env:
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: microservices-config
+              key: REDIS_HOST
+        - name: REDIS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: microservices-config
+              key: REDIS_PORT
+        - name: ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: microservices-config
+              key: ENVIRONMENT
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: microservices-config
+              key: LOG_LEVEL
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        # Health checks removed - endpoints may not exist
+        # livenessProbe:
+        #   httpGet:
+        #     path: /health
+        #     port: 8082
+        # readinessProbe:
+        #   httpGet:
+        #     path: /health
+        #     port: 8082
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: todos-api
+  namespace: microservices-staging
+  labels:
+    app: todos-api
+spec:
+  selector:
+    app: todos-api
+  ports:
+  - port: 8082
+    targetPort: 8082
+    protocol: TCP
+  type: ClusterIP

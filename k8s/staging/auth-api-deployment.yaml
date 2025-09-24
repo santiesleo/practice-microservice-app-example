@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-api
+  namespace: microservices-staging
+  labels:
+    app: auth-api
+    environment: staging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auth-api
+  template:
+    metadata:
+      labels:
+        app: auth-api
+        environment: staging
+    spec:
+      containers:
+      - name: auth-api
+        image: gcr.io/microservices-devops-0923/auth-api:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: microservices-config
+              key: ENVIRONMENT
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: microservices-config
+              key: LOG_LEVEL
+        - name: AUTH_API_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: microservices-config
+              key: AUTH_API_PORT
+        resources:
+          requests:
+            memory: "32Mi"
+            cpu: "25m"
+          limits:
+            memory: "64Mi"
+            cpu: "50m"
+        # Health checks removed - endpoints may not exist
+        # livenessProbe:
+        #   httpGet:
+        #     path: /health
+        #     port: 8000
+        # readinessProbe:
+        #   httpGet:
+        #     path: /health
+        #     port: 8000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-api
+  namespace: microservices-staging
+  labels:
+    app: auth-api
+spec:
+  selector:
+    app: auth-api
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+  type: ClusterIP

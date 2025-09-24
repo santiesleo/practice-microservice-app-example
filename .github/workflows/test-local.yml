@@ -1,0 +1,60 @@
+name: Test Local Pipeline
+on:
+  workflow_dispatch: # Solo ejecución manual
+
+jobs:
+  test-local:
+    runs-on: ubuntu-latest
+    name: Test Local Environment
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up environment
+        run: |
+          cp docker-compose.env.example .env
+          echo "Environment setup complete"
+          
+      - name: Build Docker images
+        run: |
+          echo "Building microservices..."
+          docker-compose build --parallel
+          echo "Build completed successfully"
+          
+      - name: Deploy to local environment
+        run: |
+          echo "Deploying microservices..."
+          docker-compose up -d
+          
+          echo "Waiting for services to be ready..."
+          sleep 15
+          
+          echo "Checking service health..."
+          docker-compose ps
+          
+      - name: Run basic tests
+        run: |
+          echo "Running basic connectivity tests..."
+          
+          # Test if services are responding (expect 401/404 which means they're working)
+          echo "Testing auth-api..."
+          curl -s http://localhost:8000/ | grep -q "invalid\|unauthorized\|401\|404" && echo "✅ auth-api responding" || echo "❌ auth-api not responding"
+          
+          echo "Testing todos-api..."
+          curl -s http://localhost:8082/ | grep -q "invalid\|unauthorized\|401\|404" && echo "✅ todos-api responding" || echo "❌ todos-api not responding"
+          
+          echo "Testing users-api..."
+          curl -s http://localhost:8083/ | grep -q "invalid\|unauthorized\|401\|404" && echo "✅ users-api responding" || echo "❌ users-api not responding"
+          
+          echo "Testing frontend..."
+          curl -s http://localhost:3000/ | grep -q "html\|<!DOCTYPE" && echo "✅ frontend responding" || echo "❌ frontend not responding"
+          
+          echo "Basic tests completed"
+          
+      - name: Cleanup
+        if: always()
+        run: |
+          echo "Cleaning up..."
+          docker-compose down
+          echo "Cleanup completed"

@@ -1,0 +1,40 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: microservices-ingress
+  namespace: microservices-staging
+  annotations:
+    kubernetes.io/ingress.class: "gce"
+    kubernetes.io/ingress.global-static-ip-name: "microservices-staging-ip"
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /api/todos
+        pathType: Prefix
+        backend:
+          service:
+            name: todos-api
+            port:
+              number: 8082
+      - path: /api/auth
+        pathType: Prefix
+        backend:
+          service:
+            name: auth-api
+            port:
+              number: 8000
+      - path: /api/users
+        pathType: Prefix
+        backend:
+          service:
+            name: users-api
+            port:
+              number: 8083
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend
+            port:
+              number: 80

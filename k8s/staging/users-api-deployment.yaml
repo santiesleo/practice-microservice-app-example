@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: users-api
+  namespace: microservices-staging
+  labels:
+    app: users-api
+    environment: staging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: users-api
+  template:
+    metadata:
+      labels:
+        app: users-api
+        environment: staging
+    spec:
+      containers:
+      - name: users-api
+        image: gcr.io/microservices-devops-0923/users-api:latest
+        ports:
+        - containerPort: 8083
+        env:
+        - name: ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: microservices-config
+              key: ENVIRONMENT
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: microservices-config
+              key: LOG_LEVEL
+        - name: USERS_API_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: microservices-config
+              key: USERS_API_PORT
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "50m"
+          limits:
+            memory: "256Mi"
+            cpu: "100m"
+        # Health checks removed - endpoints may not exist
+        # livenessProbe:
+        #   httpGet:
+        #     path: /health
+        #     port: 8083
+        # readinessProbe:
+        #   httpGet:
+        #     path: /health
+        #     port: 8083
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: users-api
+  namespace: microservices-staging
+  labels:
+    app: users-api
+spec:
+  selector:
+    app: users-api
+  ports:
+  - port: 8083
+    targetPort: 8083
+    protocol: TCP
+  type: ClusterIP

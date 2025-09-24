@@ -1,0 +1,8 @@
+# Configuración para ACT (GitHub Actions Local)
+# Usar imagen más pequeña para pruebas locales
+-P ubuntu-latest=catthehacker/ubuntu:act-latest
+-P ubuntu-20.04=catthehacker/ubuntu:act-20.04
+-P ubuntu-18.04=catthehacker/ubuntu:act-18.04
+
+# Variables de entorno para pruebas locales
+--env-file act.env

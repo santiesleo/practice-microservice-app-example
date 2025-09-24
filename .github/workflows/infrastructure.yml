@@ -1,0 +1,93 @@
+name: Infrastructure Pipeline
+on:
+  push:
+    branches: [infra/*]
+  pull_request:
+    branches: [staging, master]
+    paths:
+      - 'infrastructure/**'
+
+jobs:
+  # ===========================================
+  # JOB 1: TERRAFORM VALIDATION
+  # ===========================================
+  terraform-validate:
+    runs-on: ubuntu-latest
+    name: Terraform Validation
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
+          
+      - name: Setup GCP
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          
+      - name: Terraform Format Check
+        run: |
+          cd infrastructure/environments/staging
+          terraform fmt -check -recursive
+          
+      - name: Terraform Init
+        run: |
+          cd infrastructure/environments/staging
+          terraform init
+          
+      - name: Terraform Validate
+        run: |
+          cd infrastructure/environments/staging
+          terraform validate
+          
+      - name: Terraform Plan (Dry Run)
+        run: |
+          cd infrastructure/environments/staging
+          terraform plan -detailed-exitcode
+        env:
+          TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
+          TF_VAR_region: us-central1
+          TF_VAR_environment: staging
+
+  # ===========================================
+  # JOB 2: INFRASTRUCTURE DEPLOY (ONLY FOR INFRA BRANCHES)
+  # ===========================================
+  infrastructure-deploy:
+    runs-on: ubuntu-latest
+    name: Deploy Infrastructure Changes
+    needs: terraform-validate
+    if: github.ref == 'refs/heads/infra/*' || startsWith(github.ref, 'refs/heads/infra/')
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
+          
+      - name: Setup GCP
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          
+      - name: Terraform Apply
+        run: |
+          cd infrastructure/environments/staging
+          terraform apply -auto-approve
+        env:
+          TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
+          TF_VAR_region: us-central1
+          TF_VAR_environment: staging
+          
+      - name: Notify Infrastructure Changes
+        run: |
+          echo "Infrastructure changes deployed successfully"
+          echo "Consider running full deployment to update applications"
