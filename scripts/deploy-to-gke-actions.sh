@@ -43,25 +43,21 @@ log "Configurando gcloud..."
 gcloud config set project "$GCP_PROJECT_ID"
 gcloud auth configure-docker --quiet
 
-    # Configurar Docker Hub (para evitar errores de autenticación)
+    # Configurar Docker Hub con autenticación real
     log "Configurando Docker Hub..."
-    echo "Configurando acceso público a Docker Hub..."
     
-    # Login anónimo a Docker Hub para evitar rate limiting
-    # Usar un usuario anónimo válido
-    echo "" | docker login --username "anonymous" --password-stdin 2>/dev/null || true
-    
-    # Si el login anónimo falla, intentar sin autenticación
-    if ! docker pull maven:3.8.6-openjdk-8-slim >/dev/null 2>&1; then
-        log "Login anónimo falló, configurando acceso sin autenticación..."
-        # Configurar Docker para permitir acceso público
-        export DOCKER_BUILDKIT=0
-        export BUILDKIT_PROGRESS=plain
+    if [ -n "$DOCKER_HUB_USERNAME" ] && [ -n "$DOCKER_HUB_ACCESS_TOKEN" ]; then
+        log "Autenticando con Docker Hub usando credenciales reales..."
+        echo "$DOCKER_HUB_ACCESS_TOKEN" | docker login --username "$DOCKER_HUB_USERNAME" --password-stdin
+        log "Login a Docker Hub exitoso"
     else
-        log "Login anónimo exitoso"
-        export DOCKER_BUILDKIT=0
-        export BUILDKIT_PROGRESS=plain
+        log "WARNING: No se encontraron credenciales de Docker Hub, usando acceso anónimo..."
+        echo "" | docker login --username "anonymous" --password-stdin 2>/dev/null || true
     fi
+    
+    # Configurar Docker para mejor compatibilidad
+    export DOCKER_BUILDKIT=0
+    export BUILDKIT_PROGRESS=plain
 
 # 2. Instalar gke-gcloud-auth-plugin
 log "Instalando gke-gcloud-auth-plugin..."
