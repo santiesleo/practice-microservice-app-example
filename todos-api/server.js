@@ -67,6 +67,11 @@ app.use(bodyParser.json())
 const routes = require('./routes')
 routes(app, {tracer, redisClient, logChannel})
 
+// Health check endpoint for GCP Load Balancer
+app.get('/health', function (req, res) {
+  res.status(200).send('OK')
+})
+
 app.listen(port, function () {
   console.log('todo list RESTful API server started on: ' + port)
 })

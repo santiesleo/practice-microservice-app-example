@@ -67,6 +67,11 @@ func main() {
 		return c.String(http.StatusOK, "Auth API, written in Go\n")
 	})
 
+	// Health check endpoint for GCP Load Balancer - using /version as it works
+	// e.GET("/health", func(c echo.Context) error {
+	//     return c.String(http.StatusOK, "OK")
+	// })
+
 	e.POST("/login", getLoginHandler(userService))
 
 	// Start server

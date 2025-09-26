@@ -18,6 +18,11 @@ public class UsersController {
     @Autowired
     private UserRepository userRepository;
 
+    // Health check endpoint for GCP Load Balancer
+    @RequestMapping(value = "/health", method = RequestMethod.GET)
+    public String health() {
+        return "OK";
+    }
 
     @RequestMapping(value = "/", method = RequestMethod.GET)
     public List<User> getUsers() {
