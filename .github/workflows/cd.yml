@@ -6,89 +6,11 @@ on:
 
 jobs:
   # ===========================================
-  # JOB 1: TERRAFORM PLAN (STAGING)
-  # ===========================================
-  terraform-plan:
-    runs-on: ubuntu-latest
-    name: Terraform Plan - Staging
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.6.0
-          
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-          
-      - name: Setup GCP
-        uses: google-github-actions/setup-gcloud@v2
-        with:
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
-          
-      - name: Terraform Init - Staging
-        run: |
-          cd infrastructure/environments/staging
-          terraform init
-          
-      - name: Terraform Plan - Staging
-        run: |
-          cd infrastructure/environments/staging
-          terraform plan
-        env:
-          TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
-          TF_VAR_region: us-central1
-          TF_VAR_environment: staging
-
-  # ===========================================
-  # JOB 2: TERRAFORM APPLY (STAGING)
-  # ===========================================
-  terraform-apply-staging:
-    runs-on: ubuntu-latest
-    name: Terraform Apply - Staging
-    needs: terraform-plan
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.6.0
-          
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-          
-      - name: Setup GCP
-        uses: google-github-actions/setup-gcloud@v2
-        with:
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
-          
-      - name: Apply Terraform Changes
-        run: |
-          cd infrastructure/environments/staging
-          terraform init
-          terraform apply -auto-approve
-        env:
-          TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
-          TF_VAR_region: us-central1
-          TF_VAR_environment: staging
-
-  # ===========================================
-  # JOB 3: BUILD AND DEPLOY TO GKE
+  # JOB 1: BUILD AND DEPLOY TO GKE (OPTIMIZED)
   # ===========================================
   deploy-to-gke:
     runs-on: ubuntu-latest
     name: Build and Deploy to GKE
-    needs: terraform-apply-staging
     
     steps:
       - name: Checkout code

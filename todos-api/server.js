@@ -12,10 +12,10 @@ const {HttpLogger} = require('zipkin-transport-http');
 const zipkinMiddleware = require('zipkin-instrumentation-express').expressMiddleware;
 
 const logChannel = process.env.REDIS_CHANNEL || 'log_channel';
-const redisClient = require("redis").createClient({
+// Configurar Redis client - solo incluir password si está definido y no está vacío
+const redisConfig = {
   host: process.env.REDIS_HOST || 'localhost',
   port: process.env.REDIS_PORT || 6379,
-  password: process.env.REDIS_PASSWORD || '',
   retry_strategy: function (options) {
       if (options.error && options.error.code === 'ECONNREFUSED') {
           return new Error('The server refused the connection');
@@ -29,7 +29,14 @@ const redisClient = require("redis").createClient({
       }
       return Math.min(options.attempt * 100, 2000);
   }        
-});
+};
+
+// Solo agregar password si está definido y no está vacío
+if (process.env.REDIS_PASSWORD && process.env.REDIS_PASSWORD.trim() !== '') {
+  redisConfig.password = process.env.REDIS_PASSWORD;
+}
+
+const redisClient = require("redis").createClient(redisConfig);
 const port = process.env.TODO_API_PORT || 8082
 const jwtSecret = process.env.JWT_SECRET || "foo"
 
