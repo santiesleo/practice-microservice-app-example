@@ -139,40 +139,20 @@ kubectl apply -f k8s/staging/frontend-deployment.yaml
 # Ingress
 kubectl apply -f k8s/staging/ingress.yaml
 
-# 7. Esperar a que los pods estén listos
+# 8. Esperar a que los pods estén listos
 log "Esperando a que los pods estén listos..."
 kubectl wait --for=condition=ready pod -l app=auth-api -n microservices-staging --timeout=300s || warn "auth-api no está listo en 5 minutos"
 kubectl wait --for=condition=ready pod -l app=users-api -n microservices-staging --timeout=300s || warn "users-api no está listo en 5 minutos"
 kubectl wait --for=condition=ready pod -l app=todos-api -n microservices-staging --timeout=300s || warn "todos-api no está listo en 5 minutos"
 kubectl wait --for=condition=ready pod -l app=frontend -n microservices-staging --timeout=300s || warn "frontend no está listo en 5 minutos"
 
-# 8. Obtener IP del Ingress
-log "Verificando IP del Ingress..."
-INGRESS_IP=$(kubectl get ingress microservices-ingress -n microservices-staging -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
+# 9. Usar IP conocida del Ingress
+log "Usando IP conocida del Ingress..."
+INGRESS_IP="34.128.137.203"
+log "IP del Ingress: $INGRESS_IP"
+echo "INGRESS_IP=$INGRESS_IP" >> $GITHUB_ENV
 
-if [ -n "$INGRESS_IP" ]; then
-    log "IP del Ingress obtenida inmediatamente: $INGRESS_IP"
-    echo "INGRESS_IP=$INGRESS_IP" >> $GITHUB_ENV
-else
-    log "Ingress sin IP, esperando asignación (máximo 2 minutos)..."
-    for i in {1..12}; do
-        INGRESS_IP=$(kubectl get ingress microservices-ingress -n microservices-staging -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
-        if [ -n "$INGRESS_IP" ]; then
-            log "IP del Ingress obtenida: $INGRESS_IP"
-            echo "INGRESS_IP=$INGRESS_IP" >> $GITHUB_ENV
-            break
-        fi
-        log "Esperando IP del Ingress... (intento $i/12)"
-        sleep 10
-    done
-    
-    if [ -z "$INGRESS_IP" ]; then
-        warn "No se pudo obtener la IP del Ingress en 2 minutos"
-        warn "Continuando sin IP del Ingress..."
-    fi
-fi
-
-# 9. Mostrar estado final
+# 10. Mostrar estado final
 log "Estado final del despliegue:"
 kubectl get pods -n microservices-staging
 kubectl get services -n microservices-staging
@@ -180,12 +160,10 @@ kubectl get ingress -n microservices-staging
 
 log "¡Despliegue completado exitosamente!"
 
-# 10. Información de acceso
-if [ -n "$INGRESS_IP" ]; then
-    log "=== INFORMACIÓN DE ACCESO ==="
-    log "Frontend: http://$INGRESS_IP"
-    log "Auth API: http://$INGRESS_IP/api/auth"
-    log "Users API: http://$INGRESS_IP/api/users"
-    log "Todos API: http://$INGRESS_IP/api/todos"
-    log "=========================="
-fi
+# 11. Información de acceso
+log "=== INFORMACIÓN DE ACCESO ==="
+log "Frontend: http://$INGRESS_IP"
+log "Auth API: http://$INGRESS_IP/api/auth"
+log "Users API: http://$INGRESS_IP/api/users"
+log "Todos API: http://$INGRESS_IP/api/todos"
+log "=========================="

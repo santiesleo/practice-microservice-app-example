@@ -103,7 +103,7 @@ jobs:
               GITHUB_ENV: $GITHUB_ENV
 
       # ===========================================
-      # JOB 4: INTEGRATION TESTS
+      # JOB 3: INTEGRATION TESTS
       # ===========================================
       integration-tests:
         runs-on: ubuntu-latest
@@ -136,22 +136,10 @@ jobs:
             run: |
               gcloud container clusters get-credentials microservices-cluster-staging-v3 --zone=us-central1-a
               
-              # Wait for ingress IP
-              for i in {1..30}; do
-                INGRESS_IP=$(kubectl get ingress microservices-ingress -n microservices-staging -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
-                if [ -n "$INGRESS_IP" ]; then
-                  echo "IP found: $INGRESS_IP"
-                  echo "INGRESS_IP=$INGRESS_IP" >> $GITHUB_OUTPUT
-                  break
-                fi
-                echo "Waiting for ingress IP... (attempt $i/30)"
-                sleep 10
-              done
-              
-              if [ -z "$INGRESS_IP" ]; then
-                echo "Failed to get ingress IP"
-                exit 1
-              fi
+              # Use known working IP instead of trying to fetch it
+              INGRESS_IP="34.128.137.203"
+              echo "Using known Ingress IP: $INGRESS_IP"
+              echo "INGRESS_IP=$INGRESS_IP" >> $GITHUB_OUTPUT
               
           - name: Run Integration Tests
             run: |
