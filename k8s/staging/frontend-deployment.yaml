@@ -33,6 +33,21 @@ spec:
             configMapKeyRef:
               name: microservices-config
               key: ENVIRONMENT
+        - name: AUTH_API_URL
+          valueFrom:
+            configMapKeyRef:
+              name: microservices-config
+              key: AUTH_API_URL
+        - name: TODOS_API_URL
+          valueFrom:
+            configMapKeyRef:
+              name: microservices-config
+              key: TODOS_API_URL
+        - name: ZIPKIN_URL
+          valueFrom:
+            configMapKeyRef:
+              name: microservices-config
+              key: ZIPKIN_URL
         resources:
           requests:
             memory: "64Mi"
