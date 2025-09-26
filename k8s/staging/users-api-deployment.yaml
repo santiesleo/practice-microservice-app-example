@@ -45,18 +45,16 @@ spec:
           limits:
             memory: "1Gi"
             cpu: "200m"
-        # Health checks using /users/health endpoint
+        # Health checks via TCP socket to avoid auth on HTTP path
         livenessProbe:
-          httpGet:
-            path: /users/health
+          tcpSocket:
             port: 8083
           initialDelaySeconds: 120
           periodSeconds: 30
           timeoutSeconds: 10
           failureThreshold: 5
         readinessProbe:
-          httpGet:
-            path: /users/health
+          tcpSocket:
             port: 8083
           initialDelaySeconds: 60
           periodSeconds: 10
