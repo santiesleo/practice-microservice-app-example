@@ -147,23 +147,29 @@ kubectl wait --for=condition=ready pod -l app=todos-api -n microservices-staging
 kubectl wait --for=condition=ready pod -l app=frontend -n microservices-staging --timeout=300s || warn "frontend no está listo en 5 minutos"
 
 # 8. Obtener IP del Ingress
-log "Obteniendo IP del Ingress..."
-INGRESS_IP=""
-for i in {1..30}; do
-    INGRESS_IP=$(kubectl get ingress microservices-ingress -n microservices-staging -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
-    if [ -n "$INGRESS_IP" ]; then
-        break
-    fi
-    log "Esperando IP del Ingress... (intento $i/30)"
-    sleep 10
-done
+log "Verificando IP del Ingress..."
+INGRESS_IP=$(kubectl get ingress microservices-ingress -n microservices-staging -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
 
-if [ -z "$INGRESS_IP" ]; then
-    warn "No se pudo obtener la IP del Ingress en 5 minutos"
-    warn "Puede que tarde más tiempo en asignarse"
-else
-    log "IP del Ingress obtenida: $INGRESS_IP"
+if [ -n "$INGRESS_IP" ]; then
+    log "IP del Ingress obtenida inmediatamente: $INGRESS_IP"
     echo "INGRESS_IP=$INGRESS_IP" >> $GITHUB_ENV
+else
+    log "Ingress sin IP, esperando asignación (máximo 2 minutos)..."
+    for i in {1..12}; do
+        INGRESS_IP=$(kubectl get ingress microservices-ingress -n microservices-staging -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
+        if [ -n "$INGRESS_IP" ]; then
+            log "IP del Ingress obtenida: $INGRESS_IP"
+            echo "INGRESS_IP=$INGRESS_IP" >> $GITHUB_ENV
+            break
+        fi
+        log "Esperando IP del Ingress... (intento $i/12)"
+        sleep 10
+    done
+    
+    if [ -z "$INGRESS_IP" ]; then
+        warn "No se pudo obtener la IP del Ingress en 2 minutos"
+        warn "Continuando sin IP del Ingress..."
+    fi
 fi
 
 # 9. Mostrar estado final
