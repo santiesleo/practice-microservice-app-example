@@ -102,71 +102,71 @@ jobs:
               DOCKER_HUB_ACCESS_TOKEN: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
               GITHUB_ENV: $GITHUB_ENV
 
-  # ===========================================
-  # JOB 4: INTEGRATION TESTS
-  # ===========================================
-  integration-tests:
-    runs-on: ubuntu-latest
-    name: Integration Tests
-    needs: deploy-to-gke
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      # ===========================================
+      # JOB 4: INTEGRATION TESTS
+      # ===========================================
+      integration-tests:
+        runs-on: ubuntu-latest
+        name: Integration Tests
+        needs: deploy-to-gke
         
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-          
-      - name: Setup GCP
-        uses: google-github-actions/setup-gcloud@v2
-        with:
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
+        steps:
+          - name: Checkout code
+            uses: actions/checkout@v4
+            
+          - name: Authenticate to Google Cloud
+            uses: google-github-actions/auth@v2
+            with:
+              credentials_json: ${{ secrets.GCP_SA_KEY }}
+              
+          - name: Setup GCP
+            uses: google-github-actions/setup-gcloud@v2
+            with:
+              project_id: ${{ secrets.GCP_PROJECT_ID }}
 
-      - name: Install GKE auth plugin
-        run: |
-          echo "Installing gke-gcloud-auth-plugin..."
-          sudo apt-get update -y
-          sudo apt-get install -y google-cloud-sdk-gke-gcloud-auth-plugin || true
-          echo "export USE_GKE_GCLOUD_AUTH_PLUGIN=True" >> $GITHUB_ENV
-          
-      - name: Get Ingress IP
-        id: get-ip
-        run: |
-          gcloud container clusters get-credentials microservices-cluster-staging-v3 --zone=us-central1-a
-          
-          # Wait for ingress IP
-          for i in {1..30}; do
-            INGRESS_IP=$(kubectl get ingress microservices-ingress -n microservices-staging -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
-            if [ -n "$INGRESS_IP" ]; then
-              echo "IP found: $INGRESS_IP"
-              echo "INGRESS_IP=$INGRESS_IP" >> $GITHUB_OUTPUT
-              break
-            fi
-            echo "Waiting for ingress IP... (attempt $i/30)"
-            sleep 10
-          done
-          
-          if [ -z "$INGRESS_IP" ]; then
-            echo "Failed to get ingress IP"
-            exit 1
-          fi
-          
-      - name: Run Integration Tests
-        run: |
-          echo "Running integration tests against staging..."
-          echo "Staging URL: http://${{ steps.get-ip.outputs.INGRESS_IP }}"
-          
-          # Wait a bit for services to be ready
-          sleep 30
-          
-          # Test endpoints
-          curl -f "http://${{ steps.get-ip.outputs.INGRESS_IP }}/" || echo "Frontend test failed"
-          
-          # Note: Auth endpoints might need JWT tokens, so we'll just check if they respond
-          curl -f "http://${{ steps.get-ip.outputs.INGRESS_IP }}/api/auth" || echo "Auth API test failed"
-          curl -f "http://${{ steps.get-ip.outputs.INGRESS_IP }}/api/users" || echo "Users API test failed"
-          curl -f "http://${{ steps.get-ip.outputs.INGRESS_IP }}/api/todos" || echo "Todos API test failed"
-          
-          echo "Integration tests completed"
+          - name: Install GKE auth plugin
+            run: |
+              echo "Installing gke-gcloud-auth-plugin..."
+              sudo apt-get update -y
+              sudo apt-get install -y google-cloud-sdk-gke-gcloud-auth-plugin || true
+              echo "export USE_GKE_GCLOUD_AUTH_PLUGIN=True" >> $GITHUB_ENV
+              
+          - name: Get Ingress IP
+            id: get-ip
+            run: |
+              gcloud container clusters get-credentials microservices-cluster-staging-v3 --zone=us-central1-a
+              
+              # Wait for ingress IP
+              for i in {1..30}; do
+                INGRESS_IP=$(kubectl get ingress microservices-ingress -n microservices-staging -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
+                if [ -n "$INGRESS_IP" ]; then
+                  echo "IP found: $INGRESS_IP"
+                  echo "INGRESS_IP=$INGRESS_IP" >> $GITHUB_OUTPUT
+                  break
+                fi
+                echo "Waiting for ingress IP... (attempt $i/30)"
+                sleep 10
+              done
+              
+              if [ -z "$INGRESS_IP" ]; then
+                echo "Failed to get ingress IP"
+                exit 1
+              fi
+              
+          - name: Run Integration Tests
+            run: |
+              echo "Running integration tests against staging..."
+              echo "Staging URL: http://${{ steps.get-ip.outputs.INGRESS_IP }}"
+              
+              # Wait a bit for services to be ready
+              sleep 30
+              
+              # Test endpoints
+              curl -f "http://${{ steps.get-ip.outputs.INGRESS_IP }}/" || echo "Frontend test failed"
+              
+              # Note: Auth endpoints might need JWT tokens, so we'll just check if they respond
+              curl -f "http://${{ steps.get-ip.outputs.INGRESS_IP }}/api/auth" || echo "Auth API test failed"
+              curl -f "http://${{ steps.get-ip.outputs.INGRESS_IP }}/api/users" || echo "Users API test failed"
+              curl -f "http://${{ steps.get-ip.outputs.INGRESS_IP }}/api/todos" || echo "Todos API test failed"
+              
+              echo "Integration tests completed"
